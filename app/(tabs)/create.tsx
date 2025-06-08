@@ -9,6 +9,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -16,7 +17,8 @@ import { Image as ImageIcon, Tag, Send } from 'lucide-react-native';
 import { useBlog } from '@/contexts/BlogContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, increment } from 'firebase/firestore';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function CreateScreen() {
   const [title, setTitle] = useState('');
@@ -40,7 +42,7 @@ export default function CreateScreen() {
     try {
       // Compose post object
       const now = new Date();
-      const post = {
+      const post: any = {
         title: title.trim(),
         content: content.trim(),
         excerpt: content.trim().slice(0, 120) + (content.trim().length > 120 ? '...' : ''),
@@ -51,22 +53,52 @@ export default function CreateScreen() {
         commentsCount: 0,
         isLiked: false,
         tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-        imageUrl: imageUrl.trim() || undefined,
         readTime: Math.max(1, Math.round(content.trim().split(/\s+/).length / 200)),
         likedBy: [],
       };
+      if (imageUrl.trim()) {
+        post.imageUrl = imageUrl.trim();
+      }
       // Add to Firestore
       await addDoc(collection(db, 'posts'), post);
+      // Increment user's postsCount
+      const userRef = doc(db, 'users', user.id);
+      await updateDoc(userRef, { postsCount: increment(1) });
       setTitle('');
       setContent('');
       setTags('');
       setImageUrl('');
       refreshPosts();
       Alert.alert('Post Published!', 'Your blog post has been published successfully.');
-    } catch (err) {
-      Alert.alert('Error', 'Failed to publish post. Please try again.');
+    } catch (err: any) {
+      const errorMsg = err?.message || JSON.stringify(err);
+      Alert.alert('Error', `Failed to publish post. ${errorMsg}`);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setImageUrl(result.assets[0].uri);
+    }
+  };
+
+  const takePhoto = async () => {
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setImageUrl(result.assets[0].uri);
     }
   };
 
@@ -115,7 +147,13 @@ export default function CreateScreen() {
             <View style={styles.inputGroup}>
               <View style={styles.labelRow}>
                 <ImageIcon size={16} color="#6B7280" />
-                <Text style={styles.label}>Featured Image URL (Optional)</Text>
+                <Text style={styles.label}>Featured Image</Text>
+                <TouchableOpacity onPress={pickImage} style={{ marginLeft: 12 }}>
+                  <Text style={{ color: '#3B82F6', fontFamily: 'Inter-Medium' }}>Gallery</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={takePhoto} style={{ marginLeft: 12 }}>
+                  <Text style={{ color: '#3B82F6', fontFamily: 'Inter-Medium' }}>Camera</Text>
+                </TouchableOpacity>
               </View>
               <TextInput
                 style={styles.textInput}
@@ -127,6 +165,9 @@ export default function CreateScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
+              {imageUrl ? (
+                <Image source={{ uri: imageUrl }} style={{ width: '100%', height: 180, borderRadius: 12, marginTop: 8 }} />
+              ) : null}
             </View>
 
             <View style={styles.inputGroup}>

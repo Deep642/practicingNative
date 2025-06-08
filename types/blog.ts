@@ -7,6 +7,8 @@ export interface User {
   followersCount: number;
   followingCount: number;
   postsCount: number;
+  followers?: string[]; // user IDs
+  following?: string[]; // user IDs
 }
 
 export interface BlogPost {
@@ -40,4 +42,12 @@ export interface AuthState {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+}
+
+export interface Notification {
+  id: string;
+  type: 'like' | 'follow' | 'comment';
+  message: string;
+  createdAt: string;
+  userId: string; // ID of the user who triggered the notification
 }

@@ -29,6 +29,10 @@ export function BlogPostCard({ post }: BlogPostCardProps) {
     router.push(`/post/${post.id}`);
   };
 
+  const handleAuthorPress = () => {
+    router.push(`/author-profile?id=${post.author.id}`);
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -47,21 +51,23 @@ export function BlogPostCard({ post }: BlogPostCardProps) {
       <View style={styles.content}>
         <View style={styles.header}>
           <View style={styles.authorSection}>
-            <Image
-              source={{ uri: post.author.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2' }}
-              style={styles.avatar}
-            />
-            <View style={styles.authorInfo}>
-              <Text style={styles.authorName}>{post.author.name}</Text>
-              <View style={styles.metaInfo}>
-                <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
-                <Text style={styles.separator}>•</Text>
-                <View style={styles.readTime}>
-                  <Clock size={12} color="#6B7280" />
-                  <Text style={styles.readTimeText}>{post.readTime} min read</Text>
+            <TouchableOpacity onPress={handleAuthorPress} style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Image
+                source={{ uri: post.author.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2' }}
+                style={styles.avatar}
+              />
+              <View style={styles.authorInfo}>
+                <Text style={styles.authorName}>{post.author.name}</Text>
+                <View style={styles.metaInfo}>
+                  <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
+                  <Text style={styles.separator}>•</Text>
+                  <View style={styles.readTime}>
+                    <Clock size={12} color="#6B7280" />
+                    <Text style={styles.readTimeText}>{post.readTime} min read</Text>
+                  </View>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
 

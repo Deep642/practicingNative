@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,14 +6,18 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Settings, CreditCard as Edit, LogOut, BookOpen, Users, Heart } from 'lucide-react-native';
+import { useThemeMode, ThemeMode } from '@/contexts/ThemeContext';
 
 function ProfileContent() {
   const { user, logout } = useAuth();
+  const { theme, mode, setMode } = useThemeMode();
+  const [showThemeModal, setShowThemeModal] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -37,11 +41,14 @@ function ProfileContent() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, theme === 'dark' && { backgroundColor: '#18181B' }]}> 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity style={styles.settingsButton}>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={() => router.push('/settings')}
+          >
             <Settings size={24} color="#374151" />
           </TouchableOpacity>
         </View>
@@ -83,7 +90,7 @@ function ProfileContent() {
         </View>
 
         <View style={styles.actionsSection}>
-          <TouchableOpacity style={styles.actionItem}>
+          <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/(tabs)/my-posts')}>
             <View style={styles.actionLeft}>
               <View style={styles.actionIcon}>
                 <BookOpen size={20} color="#6B7280" />
@@ -93,7 +100,7 @@ function ProfileContent() {
             <Text style={styles.actionArrow}>›</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionItem}>
+          <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/(tabs)/liked-posts')}>
             <View style={styles.actionLeft}>
               <View style={styles.actionIcon}>
                 <Heart size={20} color="#6B7280" />
@@ -103,7 +110,7 @@ function ProfileContent() {
             <Text style={styles.actionArrow}>›</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionItem}>
+          <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/following')}>
             <View style={styles.actionLeft}>
               <View style={styles.actionIcon}>
                 <Users size={20} color="#6B7280" />
@@ -113,12 +120,12 @@ function ProfileContent() {
             <Text style={styles.actionArrow}>›</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionItem}>
+          <TouchableOpacity style={styles.actionItem} onPress={() => setShowThemeModal(true)}>
             <View style={styles.actionLeft}>
               <View style={styles.actionIcon}>
                 <Settings size={20} color="#6B7280" />
               </View>
-              <Text style={styles.actionText}>Settings</Text>
+              <Text style={styles.actionText}>Theme</Text>
             </View>
             <Text style={styles.actionArrow}>›</Text>
           </TouchableOpacity>
@@ -130,6 +137,23 @@ function ProfileContent() {
             <Text style={styles.logoutText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Theme Modal */}
+        {showThemeModal && (
+          <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: '#0008', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
+            <View style={{ backgroundColor: theme === 'dark' ? '#23232b' : '#fff', borderRadius: 16, padding: 24, width: 300 }}>
+              <Text style={{ fontFamily: 'Inter-Bold', fontSize: 18, marginBottom: 16, color: theme === 'dark' ? '#fff' : '#111' }}>Choose Theme</Text>
+              {(['light', 'dark', 'system'] as ThemeMode[]).map(opt => (
+                <TouchableOpacity key={opt} style={{ paddingVertical: 12 }} onPress={() => { setMode(opt); setShowThemeModal(false); }}>
+                  <Text style={{ color: mode === opt ? '#3B82F6' : theme === 'dark' ? '#fff' : '#111', fontFamily: 'Inter-Medium', fontSize: 16 }}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity style={{ marginTop: 16, alignSelf: 'flex-end' }} onPress={() => setShowThemeModal(false)}>
+                <Text style={{ color: '#3B82F6', fontFamily: 'Inter-Medium', fontSize: 16 }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

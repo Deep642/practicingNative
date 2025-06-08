@@ -6,6 +6,7 @@ import {
   TextInput,
   FlatList,
   TouchableOpacity,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBlog } from '@/contexts/BlogContext';
@@ -16,6 +17,7 @@ function SearchContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const { posts } = useBlog();
+  const inputRef = React.useRef<TextInput>(null);
 
   // Get all unique tags
   const allTags = useMemo(() => {
@@ -57,12 +59,16 @@ function SearchContent() {
         <View style={styles.searchInputContainer}>
           <Search size={20} color="#6B7280" />
           <TextInput
+            ref={inputRef}
             style={styles.searchInput}
             placeholder="Search articles, authors, topics..."
             placeholderTextColor="#9CA3AF"
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoCorrect={false}
+            autoCapitalize="none"
+            returnKeyType="search"
+            blurOnSubmit={false}
           />
           {(searchQuery || selectedTag) && (
             <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
@@ -131,8 +137,30 @@ function SearchContent() {
     </View>
   );
 
+  // Prevent keyboard from dismissing on every keystroke
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
+    // Do not dismiss keyboard here
+  };
+
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.searchInputContainer}>
+          <TextInput
+            ref={inputRef}
+            style={styles.searchInput}
+            placeholder="Search..."
+            value={searchQuery}
+            onChangeText={handleSearchChange}
+            autoCorrect={false}
+            autoCapitalize="none"
+            returnKeyType="search"
+            // Do not blurOnSubmit, keep keyboard open
+            blurOnSubmit={false}
+          />
+        </View>
+      </View>
       <FlatList
         data={filteredPosts}
         renderItem={renderPost}

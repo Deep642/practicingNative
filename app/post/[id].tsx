@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useBlog } from '@/contexts/BlogContext';
+import { BlogProvider, useBlog } from '@/contexts/BlogContext';
 import { CommentItem } from '@/components/CommentItem';
 import { ArrowLeft, Heart, MessageCircle, Share, Send, Clock, User } from 'lucide-react-native';
 
@@ -174,7 +174,11 @@ function PostDetailContent() {
 }
 
 export default function PostDetailScreen() {
-  return <PostDetailContent />;
+  return (
+    <BlogProvider>
+      <PostDetailContent />
+    </BlogProvider>
+  );
 }
 
 const styles = StyleSheet.create({

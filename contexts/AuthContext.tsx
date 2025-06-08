@@ -3,6 +3,7 @@ import { AuthState, User } from '@/types/blog';
 import { auth, db } from '@/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { Alert } from 'react-native';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -36,6 +37,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             followersCount: userData.followersCount || 0,
             followingCount: userData.followingCount || 0,
             postsCount: userData.postsCount || 0,
+            followers: userData.followers || [],
+            following: userData.following || [],
           },
           isLoading: false,
           isAuthenticated: true,
@@ -49,31 +52,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
-    await signInWithEmailAndPassword(auth, email, password);
-    // onAuthStateChanged will update state
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      let message = 'An unknown error occurred.';
+      if (error instanceof Error) {
+        message = error.message;
+      }
+      Alert.alert('Login Error', message);
+    } finally {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+    }
   };
 
   const signup = async (name: string, email: string, password: string) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    await updateProfile(user, { displayName: name });
-    // Create user profile in Firestore
-    await setDoc(doc(db, 'users', user.uid), {
-      name,
-      email,
-      avatar: '',
-      bio: 'New blogger ready to share amazing content',
-      followersCount: 0,
-      followingCount: 0,
-      postsCount: 0,
-    });
-    // onAuthStateChanged will update state
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      await updateProfile(user, { displayName: name });
+      // Create user profile in Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        name,
+        email,
+        avatar: '',
+        bio: 'New blogger ready to share amazing content',
+        followersCount: 0,
+        followingCount: 0,
+        postsCount: 0,
+        followers: [],
+        following: [],
+        notifications: [],
+      });
+    } catch (error) {
+      let message = 'An unknown error occurred.';
+      if (error instanceof Error) {
+        message = error.message;
+      }
+      Alert.alert('Signup Error', message);
+    } finally {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+    }
   };
 
   const logout = async () => {
-    await signOut(auth);
-    setAuthState({ user: null, isLoading: false, isAuthenticated: false });
+    setAuthState(prev => ({ ...prev, isLoading: true }));
+    try {
+      await signOut(auth);
+    } catch (error) {
+      let message = 'An unknown error occurred.';
+      if (error instanceof Error) {
+        message = error.message;
+      }
+      Alert.alert('Logout Error', message);
+    } finally {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+    }
   };
 
   return (
