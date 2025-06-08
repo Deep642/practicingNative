@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -36,9 +37,14 @@ function HomeContent() {
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.headerTop}>
-        <View>
-          <Text style={styles.greeting}>Good morning!</Text>
-          <Text style={styles.userName}>{user?.name}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Image
+            source={{ uri: user?.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2' }}
+            style={styles.userAvatar}
+          />
+          <View style={{ marginLeft: 12 }}>
+            <Text style={styles.userName}>{user?.name}</Text>
+          </View>
         </View>
         <TouchableOpacity style={styles.notificationButton}>
           <Bell size={24} color="#374151" />
@@ -142,11 +148,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 20,
   },
-  greeting: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 16,
-    color: '#6B7280',
-  },
   userName: {
     fontFamily: 'Inter-Bold',
     fontSize: 24,
@@ -201,5 +202,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     textAlign: 'center',
+  },
+  userAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E5E7EB',
   },
 });

@@ -18,7 +18,7 @@ import { ArrowLeft, Heart, MessageCircle, Share, Send, Clock, User } from 'lucid
 
 function PostDetailContent() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { posts, toggleLike, addComment, getComments } = useBlog();
+  const { posts, toggleLike, addComment, getComments, refreshPosts } = useBlog();
   const [newComment, setNewComment] = useState('');
 
   const post = posts.find(p => p.id === id);
@@ -41,10 +41,11 @@ function PostDetailContent() {
     toggleLike(post.id);
   };
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (newComment.trim()) {
-      addComment(post.id, newComment.trim());
+      await addComment(post.id, newComment.trim());
       setNewComment('');
+      refreshPosts();
     }
   };
 

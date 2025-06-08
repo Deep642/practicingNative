@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { BlogPost, Comment } from '@/types/blog';
-import { db } from '@/firebase';
-import { collection, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db, auth } from '@/firebase';
+import { collection, getDocs, doc, getDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface BlogContextType {
   posts: BlogPost[];
@@ -18,6 +19,7 @@ interface BlogContextType {
 const BlogContext = createContext<BlogContextType | undefined>(undefined);
 
 export function BlogProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [loading, setLoading] = useState(true);
@@ -99,28 +101,69 @@ export function BlogProvider({ children }: { children: React.ReactNode }) {
     refreshPosts();
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      setPosts(prevPosts =>
+        prevPosts.map(post => {
+          if (post.author.id === user.id) {
+            return {
+              ...post,
+              author: {
+                ...post.author,
+                name: user.name,
+                avatar: user.avatar,
+              },
+            };
+          }
+          return post;
+        })
+      );
+    }
+  }, [user]);
+
   const refreshPosts = async () => {
     setLoading(true);
     try {
       const postsCollection = collection(db, 'posts');
       const postsSnapshot = await getDocs(postsCollection);
-      const fetchedPosts = postsSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        title: doc.data().title,
-        content: doc.data().content,
-        excerpt: doc.data().excerpt,
-        author: doc.data().author,
-        createdAt: doc.data().createdAt,
-        updatedAt: doc.data().updatedAt,
-        likesCount: doc.data().likesCount,
-        commentsCount: doc.data().commentsCount,
-        isLiked: doc.data().isLiked,
-        tags: doc.data().tags,
-        readTime: doc.data().readTime,
-        imageUrl: doc.data().imageUrl,
-        likedBy: doc.data().likedBy || [],
-      }));
+      const fetchedPosts = await Promise.all(
+        postsSnapshot.docs.map(async (postDoc) => {
+          const postData = postDoc.data();
+          const authorRef = doc(db, 'users', postData.author.id);
+          const authorSnapshot = await getDoc(authorRef);
+          const authorData = authorSnapshot.exists() ? authorSnapshot.data() : postData.author;
+
+          return {
+            id: postDoc.id,
+            title: postData.title,
+            content: postData.content,
+            excerpt: postData.excerpt,
+            author: {
+              ...postData.author,
+              name: authorData.name || postData.author.name,
+              avatar: authorData.avatar || postData.author.avatar,
+            },
+            createdAt: postData.createdAt,
+            updatedAt: postData.updatedAt,
+            likesCount: postData.likesCount,
+            commentsCount: postData.commentsCount,
+            isLiked: postData.isLiked,
+            tags: postData.tags,
+            readTime: postData.readTime,
+            imageUrl: postData.imageUrl,
+            likedBy: postData.likedBy || [],
+          };
+        })
+      );
+
+      const commentsMap: Record<string, Comment[]> = {};
+      postsSnapshot.docs.forEach(postDoc => {
+        const postData = postDoc.data();
+        commentsMap[postDoc.id] = postData.comments || [];
+      });
+
       setPosts(fetchedPosts);
+      setComments(commentsMap);
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {
@@ -136,7 +179,12 @@ export function BlogProvider({ children }: { children: React.ReactNode }) {
   );
 
   const toggleLike = async (postId: string) => {
-    const userId = 'currentUserId'; // Replace with actual user ID from AuthContext
+    const userId = auth.currentUser?.uid; // Get actual user ID from AuthContext
+    if (!userId) {
+      console.error('User is not authenticated.');
+      return;
+    }
+
     const postRef = doc(db, 'posts', postId);
 
     try {
@@ -149,7 +197,7 @@ export function BlogProvider({ children }: { children: React.ReactNode }) {
           ? likedBy.filter((id: string) => id !== userId)
           : [...likedBy, userId];
 
-        await updateDoc(postRef, { likedBy: updatedLikedBy });
+        await updateDoc(postRef, { likedBy: updatedLikedBy, likesCount: updatedLikedBy.length });
 
         setPosts(prev => prev.map(post => 
           post.id === postId 
@@ -160,40 +208,61 @@ export function BlogProvider({ children }: { children: React.ReactNode }) {
               }
             : post
         ));
+      } else {
+        console.error('Post does not exist.');
       }
     } catch (error) {
       console.error('Error toggling like:', error);
     }
   };
 
-  const addComment = (postId: string, content: string) => {
+  const addComment = async (postId: string, content: string) => {
+    const userId = auth.currentUser?.uid; // Get actual user ID from AuthContext
+    if (!auth.currentUser || !userId) {
+      console.error('User is not authenticated.');
+      return;
+    }
+
+    const postRef = doc(db, 'posts', postId);
     const newComment: Comment = {
       id: Date.now().toString(),
       content,
       author: {
-        id: '1',
-        name: 'John Doe',
-        email: 'john@example.com',
-        avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
-        followersCount: 1234,
-        followingCount: 567,
-        postsCount: 89,
+        id: userId,
+        name: auth.currentUser.displayName || 'Anonymous',
+        email: auth.currentUser.email || '',
+        avatar: auth.currentUser.photoURL || '',
+        followersCount: 0,
+        followingCount: 0,
+        postsCount: 0,
       },
       createdAt: new Date().toISOString(),
       likesCount: 0,
       isLiked: false,
     };
 
-    setComments(prev => ({
-      ...prev,
-      [postId]: [...(prev[postId] || []), newComment]
-    }));
+    try {
+      await updateDoc(postRef, {
+        comments: arrayUnion(newComment),
+        commentsCount: increment(1),
+      });
 
-    setPosts(prev => prev.map(post =>
-      post.id === postId
-        ? { ...post, commentsCount: post.commentsCount + 1 }
-        : post
-    ));
+      setComments(prev => {
+        const updatedComments = prev[postId] ? [...prev[postId], newComment] : [newComment];
+        return {
+          ...prev,
+          [postId]: updatedComments,
+        };
+      });
+
+      setPosts(prev => prev.map(post =>
+        post.id === postId
+          ? { ...post, commentsCount: post.commentsCount + 1 }
+          : post
+      ));
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
   };
 
   const getComments = (postId: string): Comment[] => {

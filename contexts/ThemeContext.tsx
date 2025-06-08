@@ -3,13 +3,36 @@ import { Appearance } from 'react-native';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
-interface ThemeContextType {
-  theme: 'light' | 'dark';
+// Updated ThemeContextType to include mode and setMode
+export type ThemeContextType = {
+  theme: {
+    backgroundColor: string;
+    textColor: string;
+  };
+  toggleTheme: () => void;
   mode: ThemeMode;
   setMode: (mode: ThemeMode) => void;
-}
+};
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+export const ThemeContext = createContext<ThemeContextType>({
+  theme: {
+    backgroundColor: '#FFFFFF',
+    textColor: '#000000',
+  },
+  toggleTheme: () => {},
+  mode: 'system',
+  setMode: () => {},
+});
+
+const darkTheme = {
+  backgroundColor: '#000000',
+  textColor: '#FFFFFF',
+};
+
+const lightTheme = {
+  backgroundColor: '#FFFFFF',
+  textColor: '#000000',
+};
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<ThemeMode>('system');
@@ -27,8 +50,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [mode]);
 
+  const toggleTheme = () => {
+    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+  };
+
   return (
-    <ThemeContext.Provider value={{ theme, mode, setMode }}>
+    <ThemeContext.Provider value={{ theme: theme === 'dark' ? darkTheme : lightTheme, toggleTheme, mode, setMode }}>
       {children}
     </ThemeContext.Provider>
   );

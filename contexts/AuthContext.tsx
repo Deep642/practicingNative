@@ -2,13 +2,14 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AuthState, User } from '@/types/blog';
 import { auth, db } from '@/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 import { Alert } from 'react-native';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  followUser: (userIdToFollow: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,6 +50,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (auth.currentUser) {
+      const userDocRef = doc(db, 'users', auth.currentUser.uid);
+      const unsubscribe = onSnapshot(userDocRef, (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const userData = docSnapshot.data();
+          setAuthState((prev) => ({
+            ...prev,
+            user: prev.user
+              ? {
+                  ...prev.user,
+                  name: userData.name,
+                  email: userData.email,
+                  avatar: userData.avatar,
+                  bio: userData.bio ?? prev.user.bio ?? '',
+                  followersCount: userData.followersCount ?? prev.user.followersCount ?? 0,
+                  followingCount: userData.followingCount ?? prev.user.followingCount ?? 0,
+                  postsCount: userData.postsCount ?? prev.user.postsCount ?? 0,
+                  followers: userData.followers ?? prev.user.followers ?? [],
+                  following: userData.following ?? prev.user.following ?? [],
+                }
+              : null,
+          }));
+        }
+      });
+
+      return () => unsubscribe();
+    }
+  }, [auth.currentUser]);
 
   const login = async (email: string, password: string) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
@@ -110,8 +141,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const followUser = async (userIdToFollow: string) => {
+    if (!auth.currentUser) {
+      console.error('User is not authenticated.');
+      return;
+    }
+
+    const currentUserRef = doc(db, 'users', auth.currentUser.uid);
+    const userToFollowRef = doc(db, 'users', userIdToFollow);
+
+    try {
+      await updateDoc(currentUserRef, {
+        following: arrayUnion(userIdToFollow),
+        followingCount: increment(1),
+      });
+
+      await updateDoc(userToFollowRef, {
+        followers: arrayUnion(auth.currentUser.uid),
+        followersCount: increment(1),
+      });
+
+      console.log('Successfully followed user:', userIdToFollow);
+    } catch (error) {
+      console.error('Error following user:', error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ ...authState, login, signup, logout }}>
+    <AuthContext.Provider value={{ ...authState, login, signup, logout, followUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useThemeMode, ThemeMode } from '@/contexts/ThemeContext';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { updateProfile, updatePassword } from 'firebase/auth';
+import { updateProfile } from 'firebase/auth';
 import { auth, db, storage } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -24,7 +24,6 @@ export default function SettingsScreen() {
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [profilePic, setProfilePic] = useState(user?.avatar || '');
-  const [password, setPassword] = useState('');
 
   const handleSave = () => {
     Alert.alert('Settings Saved', 'Your changes have been saved successfully.');
@@ -36,15 +35,15 @@ export default function SettingsScreen() {
 
   const handleProfilePicChange = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // Reverted to the original API
       allowsEditing: true,
       aspect: [1, 1],
       quality: 1,
     });
 
-    if (!result.canceled && user?.id) {
-      try {
-        const uri = result.assets[0].uri;
+    if (!result.canceled && user && result.assets && result.assets.length > 0) {
+      const uri = result.assets[0].uri;
+      if (uri) {
         setProfilePic(uri);
 
         const storageRef = ref(storage, `avatars/${user.id}`);
@@ -57,27 +56,38 @@ export default function SettingsScreen() {
         await updateProfile(auth.currentUser!, { photoURL: downloadURL });
 
         Alert.alert('Profile Picture Updated', 'Your profile picture has been updated successfully.');
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'An unknown error occurred.';
-        Alert.alert('Error', message);
+      } else {
+        Alert.alert('Error', 'Invalid image URI.');
       }
     } else {
-      Alert.alert('Error', 'No image selected or user ID is missing.');
+      Alert.alert('Error', 'No image selected or user is not authenticated.');
     }
   };
 
-  const handlePasswordChange = async () => {
-    if (auth.currentUser) {
-      try {
-        await updatePassword(auth.currentUser, password);
-        Alert.alert('Password Updated', 'Your password has been updated successfully.');
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'An unknown error occurred.';
-        Alert.alert('Error', message);
+  const handleProfileUpdate = async () => {
+    try {
+      if (auth.currentUser && user) {
+        const userRef = doc(db, 'users', user.id);
+        const updates = {
+          name,
+          email,
+          avatar: profilePic,
+        };
+
+        await updateDoc(userRef, updates);
+        Alert.alert('Profile Updated', 'Your profile details have been updated successfully.');
+      } else {
+        Alert.alert('Error', 'User is not authenticated or user data is unavailable.');
       }
-    } else {
-      Alert.alert('Error', 'User is not authenticated.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'An unknown error occurred.';
+      Alert.alert('Error', message);
     }
+  };
+
+  const handlePasswordChange = () => {
+    // Password change logic here
+    Alert.alert('Password Change', 'Password change functionality is not implemented yet.');
   };
 
   return (
@@ -108,36 +118,28 @@ export default function SettingsScreen() {
           onChangeText={setEmail}
         />
 
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-
         <Text style={styles.label}>Theme</Text>
         <View style={styles.themeButtons}>
           <TouchableOpacity
             style={[styles.themeButton, mode === 'light' && styles.activeButton]}
             onPress={() => handleThemeChange('light')}
           >
-            <Text style={styles.buttonText}>Light</Text>
+            <Text style={[styles.buttonText, { color: '#000000' }]}>Light</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.themeButton, mode === 'dark' && styles.activeButton]}
             onPress={() => handleThemeChange('dark')}
           >
-            <Text style={styles.buttonText}>Dark</Text>
+            <Text style={[styles.buttonText, { color: '#000000' }]}>Dark</Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Save Changes</Text>
+        <TouchableOpacity style={[styles.saveButton, { marginBottom: 16 }]} onPress={handleProfileUpdate}>
+          <Text style={[styles.saveButtonText, { color: '#000000' }]}>Save Changes</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.saveButton} onPress={handlePasswordChange}>
-          <Text style={styles.saveButtonText}>Update Password</Text>
+        <TouchableOpacity style={[styles.saveButton, { marginBottom: 16 }]} onPress={() => router.push('/auth/update-password')}>
+          <Text style={[styles.saveButtonText, { color: '#000000' }]}>Update Password</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -226,4 +228,5 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     marginBottom: 16,
   },
+  // Dark mode styles should be handled separately, not as a nested object in StyleSheet.
 });

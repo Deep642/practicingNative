@@ -80,25 +80,29 @@ export default function CreateScreen() {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // Ensured compatibility with the current API
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
     });
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setImageUrl(result.assets[0].uri);
+    } else {
+      console.error('No image selected or invalid URI.');
     }
   };
 
   const takePhoto = async () => {
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // Ensured compatibility with the current API
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
     });
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setImageUrl(result.assets[0].uri);
+    } else {
+      console.error('No photo taken or invalid URI.');
     }
   };
 

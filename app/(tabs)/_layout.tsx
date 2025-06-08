@@ -1,19 +1,22 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, Search, User, CirclePlus as PlusCircle } from 'lucide-react-native';
+import { Home, Search, User, CirclePlus as PlusCircle } from 'lucide-react-native';
 import { BlogProvider } from '@/contexts/BlogContext';
-import { ThemeProvider } from '@/contexts/ThemeContext';
+import { ThemeProvider, ThemeContext } from '@/contexts/ThemeContext';
+import { useContext } from 'react';
 
 export default function TabLayout() {
+  const { theme } = useContext(ThemeContext);
+
   return (
     <ThemeProvider>
       <BlogProvider>
         <Tabs
           screenOptions={{
             headerShown: false,
-            tabBarActiveTintColor: '#3B82F6',
+            tabBarActiveTintColor: theme.textColor,
             tabBarInactiveTintColor: '#6B7280',
             tabBarStyle: {
-              backgroundColor: '#FFFFFF',
+              backgroundColor: theme.backgroundColor,
               borderTopWidth: 1,
               borderTopColor: '#E5E7EB',
               paddingBottom: 8,
@@ -24,6 +27,7 @@ export default function TabLayout() {
               fontSize: 12,
               fontFamily: 'Inter-Medium',
               marginTop: 4,
+              color: theme.textColor,
             },
           }}>
           <Tabs.Screen

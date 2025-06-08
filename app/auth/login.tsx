@@ -15,13 +15,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import LoadingScreen from '@/components/LoadingScreen';
 import { Mail, Lock, ArrowLeft } from 'lucide-react-native';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{[key: string]: string}>({});
-  const { login, isLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
 
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
@@ -43,17 +45,18 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
-    if (!validateForm()) return;
-
+    setIsLoading(true);
     try {
       await login(email, password);
-      router.replace('/(tabs)');
+      router.push('/(tabs)');
     } catch (error) {
-      Alert.alert('Login Failed', 'Please check your credentials and try again.');
+      Alert.alert('Error', 'Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  return (
+  return isLoading ? <LoadingScreen /> : (
     <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={['#3B82F6', '#1D4ED8', '#1E40AF']}

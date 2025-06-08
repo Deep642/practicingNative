@@ -13,11 +13,21 @@ import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Settings, CreditCard as Edit, LogOut, BookOpen, Users, Heart } from 'lucide-react-native';
 import { useThemeMode, ThemeMode } from '@/contexts/ThemeContext';
+import { useBlog } from '@/contexts/BlogContext';
 
 function ProfileContent() {
   const { user, logout } = useAuth();
   const { theme, mode, setMode } = useThemeMode();
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const { posts } = useBlog();
+
+  const userPostsCount = user ? posts.filter(post => post.author.id === user.id).length : 0;
+
+  const stats = [
+    { label: 'Posts', value: userPostsCount, icon: BookOpen },
+    { label: 'Followers', value: user?.followersCount || 0, icon: Users },
+    { label: 'Following', value: user?.followingCount || 0, icon: Heart },
+  ];
 
   const handleLogout = () => {
     logout();
@@ -34,14 +44,8 @@ function ProfileContent() {
     );
   }
 
-  const stats = [
-    { label: 'Posts', value: user.postsCount, icon: BookOpen },
-    { label: 'Followers', value: user.followersCount, icon: Users },
-    { label: 'Following', value: user.followingCount, icon: Heart },
-  ];
-
   return (
-    <SafeAreaView style={[styles.container, theme === 'dark' && { backgroundColor: '#18181B' }]}> 
+    <SafeAreaView style={[styles.container, mode === 'dark' && { backgroundColor: '#18181B' }]}> 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profile</Text>
@@ -59,10 +63,6 @@ function ProfileContent() {
               source={{ uri: user.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=2' }}
               style={styles.profileImage}
             />
-            <TouchableOpacity style={styles.editButton}>
-              <Edit size={16} color="#3B82F6" />
-              <Text style={styles.editButtonText}>Edit Profile</Text>
-            </TouchableOpacity>
           </View>
 
           <View style={styles.profileInfo}>
@@ -141,11 +141,11 @@ function ProfileContent() {
         {/* Theme Modal */}
         {showThemeModal && (
           <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: '#0008', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
-            <View style={{ backgroundColor: theme === 'dark' ? '#23232b' : '#fff', borderRadius: 16, padding: 24, width: 300 }}>
-              <Text style={{ fontFamily: 'Inter-Bold', fontSize: 18, marginBottom: 16, color: theme === 'dark' ? '#fff' : '#111' }}>Choose Theme</Text>
+            <View style={{ backgroundColor: mode === 'dark' ? '#23232b' : '#fff', borderRadius: 16, padding: 24, width: 300 }}>
+              <Text style={{ fontFamily: 'Inter-Bold', fontSize: 18, marginBottom: 16, color: mode === 'dark' ? '#fff' : '#111' }}>Choose Theme</Text>
               {(['light', 'dark', 'system'] as ThemeMode[]).map(opt => (
                 <TouchableOpacity key={opt} style={{ paddingVertical: 12 }} onPress={() => { setMode(opt); setShowThemeModal(false); }}>
-                  <Text style={{ color: mode === opt ? '#3B82F6' : theme === 'dark' ? '#fff' : '#111', fontFamily: 'Inter-Medium', fontSize: 16 }}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</Text>
+                  <Text style={{ color: mode === opt ? '#3B82F6' : mode === 'dark' ? '#fff' : '#111', fontFamily: 'Inter-Medium', fontSize: 16 }}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</Text>
                 </TouchableOpacity>
               ))}
               <TouchableOpacity style={{ marginTop: 16, alignSelf: 'flex-end' }} onPress={() => setShowThemeModal(false)}>
@@ -211,21 +211,6 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     marginBottom: 16,
-  },
-  editButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#3B82F6',
-    gap: 6,
-  },
-  editButtonText: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-    color: '#3B82F6',
   },
   profileInfo: {
     alignItems: 'center',

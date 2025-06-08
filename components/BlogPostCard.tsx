@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,14 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
-import { Heart, MessageCircle, Clock, User } from 'lucide-react-native';
+import { Heart, MessageCircle, Clock } from 'lucide-react-native';
 import { BlogPost } from '@/types/blog';
 import { useBlog } from '@/contexts/BlogContext';
 import { router } from 'expo-router';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/firebase';
+import { User } from '@/types/blog';
+import { ThemeContext } from '@/contexts/ThemeContext';
 
 interface BlogPostCardProps {
   post: BlogPost;
@@ -20,6 +24,29 @@ const { width } = Dimensions.get('window');
 
 export function BlogPostCard({ post }: BlogPostCardProps) {
   const { toggleLike } = useBlog();
+  const { theme } = useContext(ThemeContext);
+  const [authorDetails, setAuthorDetails] = useState<User>(post.author);
+
+  useEffect(() => {
+    const fetchAuthorDetails = async () => {
+      const authorRef = doc(db, 'users', post.author.id);
+      const authorSnapshot = await getDoc(authorRef);
+      if (authorSnapshot.exists()) {
+        const authorData = authorSnapshot.data();
+        setAuthorDetails({
+          id: post.author.id,
+          name: authorData.name || post.author.name,
+          email: authorData.email || post.author.email,
+          avatar: authorData.avatar || post.author.avatar,
+          followersCount: authorData.followersCount || 0,
+          followingCount: authorData.followingCount || 0,
+          postsCount: authorData.postsCount || 0,
+        });
+      }
+    };
+
+    fetchAuthorDetails();
+  }, [post.author.id]);
 
   const handleLike = () => {
     toggleLike(post.id);
@@ -53,11 +80,11 @@ export function BlogPostCard({ post }: BlogPostCardProps) {
           <View style={styles.authorSection}>
             <TouchableOpacity onPress={handleAuthorPress} style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Image
-                source={{ uri: post.author.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2' }}
+                source={{ uri: authorDetails.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2' }}
                 style={styles.avatar}
               />
               <View style={styles.authorInfo}>
-                <Text style={styles.authorName}>{post.author.name}</Text>
+                <Text style={styles.authorName}>{authorDetails.name}</Text>
                 <View style={styles.metaInfo}>
                   <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
                   <Text style={styles.separator}>•</Text>
