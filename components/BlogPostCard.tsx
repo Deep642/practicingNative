@@ -139,16 +139,16 @@ export function BlogPostCard({ post }: BlogPostCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginVertical: 8,
+    borderRadius: width > 768 ? 24 : 16,
+    marginHorizontal: width > 768 ? 24 : 16,
+    marginVertical: width > 768 ? 12 : 8,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius: width > 768 ? 12 : 8,
     elevation: 4,
   },
   image: {
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontFamily: 'Inter-Medium',
-    fontSize: 12,
+    fontSize: width > 768 ? 14 : 12,
     color: '#4B5563',
   },
   footer: {

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Appearance } from 'react-native';
+import { Appearance, Dimensions } from 'react-native';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -8,6 +8,7 @@ export type ThemeContextType = {
   theme: {
     backgroundColor: string;
     textColor: string;
+    fontSize: number; // Include fontSize in the theme type
   };
   toggleTheme: () => void;
   mode: ThemeMode;
@@ -18,26 +19,33 @@ export const ThemeContext = createContext<ThemeContextType>({
   theme: {
     backgroundColor: '#FFFFFF',
     textColor: '#000000',
+    fontSize: 16, // Default fontSize
   },
   toggleTheme: () => {},
   mode: 'system',
   setMode: () => {},
 });
 
+const { width } = Dimensions.get('window');
+
 const darkTheme = {
   backgroundColor: '#000000',
   textColor: '#FFFFFF',
+  fontSize: width > 768 ? 18 : 16, // Responsive font size
 };
 
 const lightTheme = {
   backgroundColor: '#FFFFFF',
   textColor: '#000000',
+  fontSize: width > 768 ? 18 : 16, // Responsive font size
 };
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<ThemeMode>('system');
   const [theme, setTheme] = useState<'light' | 'dark'>(Appearance.getColorScheme() || 'light');
+const { getDefaultConfig } = require('expo/metro-config');
 
+module.exports = getDefaultConfig(__dirname);
   useEffect(() => {
     if (mode === 'system') {
       const listener = Appearance.addChangeListener(({ colorScheme }) => {

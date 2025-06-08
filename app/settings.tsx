@@ -7,6 +7,7 @@ import {
   TextInput,
   Alert,
   Image,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +18,8 @@ import { updateProfile } from 'firebase/auth';
 import { auth, db, storage } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+
+const { width } = Dimensions.get('window');
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
@@ -150,13 +153,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
-    padding: 16,
+    padding: width > 768 ? 24 : 16,
   },
   header: {
     fontFamily: 'Inter-Bold',
-    fontSize: 24,
+    fontSize: width > 768 ? 28 : 24,
     color: '#111827',
-    marginBottom: 16,
+    marginBottom: width > 768 ? 20 : 16,
   },
   section: {
     marginBottom: 24,
@@ -170,11 +173,10 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
-    fontFamily: 'Inter-Regular',
-    fontSize: 16,
-    marginBottom: 16,
+    borderRadius: width > 768 ? 12 : 8,
+    padding: width > 768 ? 16 : 12,
+    fontSize: width > 768 ? 18 : 16,
+    marginBottom: width > 768 ? 20 : 16,
   },
   themeButtons: {
     flexDirection: 'row',
